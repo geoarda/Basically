@@ -3,48 +3,24 @@ import moment from "moment";
 import simpleGit from "simple-git";
 import random from "random";
 
-const path = "./data.json";
+const path = "./data.json"; // commit sayısını kaydetmek için
 const git = simpleGit();
+const startYear = 2014;
+const endYear = 2025;
 
-// Rastgele tarih: 2017 – 2025 arası herhangi bir gün
-function randomDate() {
-  const start = moment("2017-01-01");
-  const end = moment("2025-12-31");
-
-  // iki tarih arasındaki toplam gün sayısı
-  const days = end.diff(start, "days");
-
-  // rastgele gün ekle
-  const rand = random.int(0, days);
-  const date = start.clone().add(rand, "days");
-
-  return date;
+const makeCommits = async () => {
+  for(let year = startYear; year <= endYear; year++){
+    for(let week = 0; week < 52; week++){
+      let commitsThisWeek = random.int(1, 5); // haftada 1-5 commit
+      for(let i = 0; i < commitsThisWeek; i++){
+        const date = moment(`${year}-01-01`).add(week, 'weeks').add(random.int(0,6), 'days');
+        // Dosyayı değiştir
+        jsonfile.writeFileSync(path, { date: date.format('YYYY-MM-DD'), count: i });
+        await git.add(path);
+        await git.commit(`Commit for ${date.format('YYYY-MM-DD')}`, { '--date': date.toISOString() });
+      }
+    }
+  }
 }
 
-const makeCommits = async (n) => {
-  for (let i = 0; i < n; i++) {
-    const date = randomDate();
-
-    // Geçersiz tarih varsa atla (ama olmayacak)
-    if (!date.isValid()) {
-      console.log("Geçersiz tarih oluştu, atlandı.");
-      continue;
-    }
-
-    const iso = date.toISOString();
-    console.log("Commit tarihi:", iso);
-
-    const data = { date: iso, rand: Math.random() };
-    await jsonfile.writeFile(path, data);
-
-    await git.add([path]);
-    await git.commit(`Commit at ${iso}`, { "--date": iso });
-  }
-
-  // branch adı: main yoksa master yap
-  await git.push("origin", "main").catch(async () => {
-    await git.push("origin", "master");
-  });
-};
-
-makeCommits(15280); // <-- Kaç commit istiyorsan burayı arttır
+makeCommits();
